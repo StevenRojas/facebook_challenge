@@ -1,2 +1,2 @@
 # facebook_challenge
-Train an Image Classifier to Identify Flowers (Udacity Facebook Challenge)
+Train an Image Classifier to Identify Flowers (Udacity & Facebook Challenge)
