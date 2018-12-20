@@ -1,5 +1,6 @@
 from app.utils.utils import parse_arguments
 from app.network.arch_handler import ArchHandler
+from app.network.hyper_handler import HyperHandler
 import torch
 from torch import nn, optim
 from torchvision import datasets, transforms
@@ -7,45 +8,49 @@ from torch.optim import lr_scheduler
 from app.network.trainer import Trainer
 import os
 from time import time
+import json
 
 
 def main():
     start_time = time()
-    args = parse_arguments()  # TODO: Check arguments
-    print(args)
+    config = parse_arguments()
+    print(json.dumps(config, indent=2))
     arch_handler = ArchHandler()
     print("Getting model...")
-    model = arch_handler.create_model(args)
+    model = arch_handler.create_model(config)
     show_time(start_time, time(), "Model downloaded")
+
     print("Training model...")
     start_time = time()
-    trainer = get_trainer(model, args)
-    trainer.train(args.epochs)
+    trainer = get_trainer(model, config)
+    trainer.train(config["epochs"])
     show_time(start_time, time(), "Model trained")
 
-    checkpoint_path = os.getcwd() + "/" + args.save_dir
+    checkpoint_path = os.getcwd() + "/checkpoints/"
     if not os.path.exists(checkpoint_path):
         os.makedirs(checkpoint_path)
-    checkpoint_path += "/checkpoint_t.pth"
-    print("Saving model to {}".format(checkpoint_path))
-    trainer.save_checkpoint(checkpoint_path)
+    checkpoint_path += config["save_chk"]
+    if config["save_state_dict"]:
+        print("Saving model to {}".format(checkpoint_path))
+        trainer.save_checkpoint(checkpoint_path)
+    else:
+        print("Saving loss values to {}".format(checkpoint_path))
+        trainer.save_loss_values(config, checkpoint_path)
     print("Done")
 
 
-def get_trainer(model, args):
+def get_trainer(model, config):
     device = "cpu"
-    if args.gpu is not None:
+    if config["gpu"] is True:
         if torch.cuda.is_available():
             device = "cuda"
         else:
-            print("Warning: CUDA is not available, using CPU")
+            print("[WARNING] CUDA is not available, using CPU")
     model.to(device)
-    criterion = nn.CrossEntropyLoss()
-    # TODO: allow setup optimizer and it's parameters
-    optimizer = optim.SGD(model.classifier.parameters(), lr=args.learning_rate, momentum=0.9, weight_decay=0.0005)
-    # TODO: allow define the use of scheduler or not
-    scheduler = lr_scheduler.StepLR(optimizer, step_size=5, gamma=0.5)
-    trainloader, validloader, testloader = get_loaders(args.data_dir)
+    hyper_handler = HyperHandler(config)
+    criterion, optimizer, scheduler = hyper_handler.generate(model.classifier.parameters())
+
+    trainloader, validloader, testloader = get_loaders(config["data_dir"])
     trainer = Trainer(model, criterion, optimizer, device, scheduler) \
         .set_train_loader(trainloader) \
         .set_valid_loader(validloader) \

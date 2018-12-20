@@ -81,6 +81,18 @@ class Trainer:
         }
         torch.save(checkpoint, filename)
 
+    def save_loss_values(self, config, filename):
+        checkpoint = {
+            "architecture": self.network.classifier.get_architecture(),
+            "config": config,
+            "values": {
+                "training_loss_values": self.training_loss_values,
+                "validate_loss_values": self.validate_loss_values,
+                "accuracy_values": self.accuracy_values,
+            }
+        }
+        torch.save(checkpoint, filename)
+
     def __validate_model(self):
         accuracy = 0
         valid_loss = 0

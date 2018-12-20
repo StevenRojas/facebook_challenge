@@ -30,11 +30,11 @@ class ArchHandler:
             "inception": self.__get_inception,
         }
 
-    def create_model(self, args):
-        hidden = [int(n) for n in args.hidden_units.split(',')]
-        self.architecture["id"] = args.arch
+    def create_model(self, config):
+        hidden = [int(n) for n in config["hidden_units"].split(',')]
+        self.architecture["id"] = config["arch"]
         self.architecture["hidden"] = hidden
-        model = self.__get_model(args.arch)
+        model = self.__get_model(config["arch"])
         return model
 
     def load_model(self, architecture):

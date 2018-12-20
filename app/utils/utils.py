@@ -9,6 +9,22 @@ Utils library to handle input and output operations
 """
 
 
+def parse_predict_arguments():
+    """
+    Parse input arguments for predict script
+    i.e.: python predict.py image_path checkpoint
+    :return: Parsed arguments
+    """
+    parser = argparse.ArgumentParser()
+    parser.add_argument("image_path", type=str, help="Path of flower image")
+    parser.add_argument("checkpoint", type=str, help="Path of checkpoint")
+    parser.add_argument("--top_k", type=int, default="5", help="Number of top classes")
+    parser.add_argument("--category_names", default="cat_to_name.json", help="json file with flower names")
+    parser.add_argument("--gpu", action="store_true", help="Use GPU")
+
+    return parser.parse_args()
+
+
 def parse_arguments():
     """
     Parse input arguments for train script
@@ -17,30 +33,36 @@ def parse_arguments():
     """
     parser = argparse.ArgumentParser()
     parser.add_argument("data_dir", type=str, help="Path of flower images")
-    parser.add_argument("--save_dir", type=str, default="checkpoints", help="Path for save checkpoints")
+    parser.add_argument("--save_chk", type=str, default="checkpoint.pth", help="Name of the checkpoint file")
     parser.add_argument("--arch", type=str, default="vgg16", help="Pre-trained Model")
     parser.add_argument("--learning_rate", type=float, default="0.01", help="Learning rate")
     parser.add_argument("--hidden_units", type=str, default="4096, 2048", help="Number of nodes per hidden layer")
     parser.add_argument("--epochs", type=int, default="10", help="Number of epochs")
-    parser.add_argument("--gpu", help="Use GPU")
+    parser.add_argument("--gpu", action="store_true", help="Use GPU")
+    parser.add_argument("--config", type=str, help="JSON file with network configuration")
 
-    return parser.parse_args()
+    return merge_with_config(parser.parse_args())
 
 
-def parse_predict_arguments():
-    """
-    Parse input arguments for predict script
-    i.e.: python train.py image_path checkpoint
-    :return: Parsed arguments
-    """
-    parser = argparse.ArgumentParser()
-    parser.add_argument("image_path", type=str, help="Path of flower image")
-    parser.add_argument("checkpoint", type=str, help="Path of checkpoint")
-    parser.add_argument("--top_k", type=str, default="5", help="Number of top classes")
-    parser.add_argument("--category_names", default="cat_to_name.json", help="json file with flower names")
-    parser.add_argument("--gpu", help="Use GPU")
+def merge_with_config(args):
+    print(args)
+    config = {}  # TODO: Override args to config
+    if args.config is not None:
+        config = get_config(args.config)
+    # config["arch"] = args.arch
+    # config["hidden_layers"] = args.hidden_units
+    return config
 
-    return parser.parse_args()
+
+def get_config(filename):
+    path = "data/nets/"
+    file_path = os.getcwd() + "/" + path + filename
+    if not os.path.exists(file_path):
+        print("[WARNING] Configuration file not found at {}".format(file_path))
+    with open(file_path, 'r') as f:
+        config = json.load(f)
+        config["filename"] = filename
+    return config
 
 
 def get_flowers_names(cat_filename, flower_filename, classes, class_idx):
