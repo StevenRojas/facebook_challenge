@@ -25,6 +25,8 @@ class Predictor:
             return False
         checkpoint = torch.load(checkpoint_path, map_location='cpu')
         self.checkpoint = checkpoint
+        print(checkpoint['config'])
+        exit(1)
         self.architecture = checkpoint['architecture']
         return True
 

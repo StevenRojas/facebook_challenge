@@ -9,6 +9,7 @@ from app.network.trainer import Trainer
 import os
 from time import time
 import json
+from workspace_utils import active_session
 
 
 def main():
@@ -17,29 +18,31 @@ def main():
     print(json.dumps(config, indent=2))
     arch_handler = ArchHandler()
     print("Getting model...")
-    model = arch_handler.create_model(config)
+    model, parameters = arch_handler.create_model(config)
     show_time(start_time, time(), "Model downloaded")
-
-    print("Training model...")
-    start_time = time()
-    trainer = get_trainer(model, config)
-    trainer.train(config["epochs"])
-    show_time(start_time, time(), "Model trained")
 
     checkpoint_path = os.getcwd() + "/checkpoints/"
     if not os.path.exists(checkpoint_path):
         os.makedirs(checkpoint_path)
     checkpoint_path += config["save_chk"]
-    if config["save_state_dict"]:
-        print("Saving model to {}".format(checkpoint_path))
-        trainer.save_checkpoint(checkpoint_path)
-    else:
-        print("Saving loss values to {}".format(checkpoint_path))
-        trainer.save_loss_values(config, checkpoint_path)
+
+    print("Training model...")
+    start_time = time()
+    trainer = get_trainer(model, parameters, config)
+    with active_session():
+        trainer.train(config["epochs"], checkpoint_path)
+    show_time(start_time, time(), "Model trained")
+
+    # if config["save_state_dict"]:
+    #     print("Saving model to {}".format(checkpoint_path))
+    #     trainer.save_checkpoint(checkpoint_path)
+    # else:
+    #     print("Saving loss values to {}".format(checkpoint_path))
+    #     trainer.save_loss_values(config, checkpoint_path)
     print("Done")
 
 
-def get_trainer(model, config):
+def get_trainer(model, parameters, config):
     device = "cpu"
     if config["gpu"] is True:
         if torch.cuda.is_available():
@@ -48,7 +51,7 @@ def get_trainer(model, config):
             print("[WARNING] CUDA is not available, using CPU")
     model.to(device)
     hyper_handler = HyperHandler(config)
-    criterion, optimizer, scheduler = hyper_handler.generate(model.classifier.parameters())
+    criterion, optimizer, scheduler = hyper_handler.generate(parameters)
 
     trainloader, validloader, testloader = get_loaders(config["data_dir"])
     trainer = Trainer(model, criterion, optimizer, device, scheduler) \
@@ -61,7 +64,7 @@ def get_trainer(model, config):
 
 def get_loaders(data_dir):
     # TODO: Check that folders exist
-    data_dir = os.getcwd() + "/" + data_dir
+    # data_dir = os.getcwd() + "/" + data_dir
     train_dir = data_dir + '/train'
     valid_dir = data_dir + '/valid'
     test_dir = data_dir + '/valid'

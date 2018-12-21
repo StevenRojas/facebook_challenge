@@ -24,7 +24,7 @@ class ArchHandler:
             "vgg16": self.__get_vgg16,
             "vgg13": self.__get_vgg13,
             "resnet18": self.__get_resnet18,
-            "resnet101": self.__get_resnet101,
+            "resnet152": self.__get_resnet152,
             "alexnet": self.__get_alexnet,
             "densenet121": self.__get_densenet121,
             "inception": self.__get_inception,
@@ -34,14 +34,12 @@ class ArchHandler:
         hidden = [int(n) for n in config["hidden_units"].split(',')]
         self.architecture["id"] = config["arch"]
         self.architecture["hidden"] = hidden
-        model = self.__get_model(config["arch"])
-        return model
+        return self.__get_model(config["arch"])
 
     def load_model(self, architecture):
         self.architecture["id"] = architecture['id']
         self.architecture["hidden"] = architecture['hidden']
-        model = self.__get_model(architecture['id'])
-        return model
+        return self.__get_model(architecture['id'])
 
     def __get_model(self, arch_name):
         func = self.supported_models.get(arch_name.lower(), lambda : "Not supported architecture")
@@ -54,7 +52,7 @@ class ArchHandler:
         self.architecture["input"] = model.classifier[0].in_features
          # TODO: Validate classifier architecture?
         model.classifier = Network(self.architecture)
-        return model
+        return model, model.classifier.parameters()
 
     def __get_vgg13(self):
         model = models.vgg13(pretrained=True)
@@ -62,23 +60,23 @@ class ArchHandler:
             param.requires_grad = False
         self.architecture["input"] = model.classifier[0].in_features
         model.classifier = Network(self.architecture)
-        return model
+        return model, model.classifier.parameters()
 
     def __get_resnet18(self):
         model = models.resnet18(pretrained=True)
         for param in model.parameters():
             param.requires_grad = False
         self.architecture["input"] = model.fc.in_features
-        model.classifier = Network(self.architecture)
-        return model
+        model.fc = Network(self.architecture)
+        return model, model.fc.parameters()
 
-    def __get_resnet101(self):
-        model = models.resnet101(pretrained=True)
+    def __get_resnet152(self):
+        model = models.resnet152(pretrained=True)
         for param in model.parameters():
             param.requires_grad = False
         self.architecture["input"] = model.fc.in_features
-        model.classifier = Network(self.architecture)
-        return model
+        model.fc = Network(self.architecture)
+        return model, model.fc.parameters()
 
     def __get_alexnet(self):
         model = models.alexnet(pretrained=True)
@@ -86,7 +84,7 @@ class ArchHandler:
             param.requires_grad = False
         self.architecture["input"] = model.classifier[1].in_features
         model.classifier = Network(self.architecture)
-        return model
+        return model, model.classifier.parameters()
 
     def __get_densenet121(self):
         model = models.densenet121(pretrained=True)
@@ -94,12 +92,12 @@ class ArchHandler:
             param.requires_grad = False
         self.architecture["input"] = model.classifier.in_features
         model.classifier = Network(self.architecture)
-        return model
+        return model, model.classifier.parameters()
 
     def __get_inception(self):
         model = models.inception_v3(pretrained=True)
         for param in model.parameters():
             param.requires_grad = False
         self.architecture["input"] = model.fc.in_features
-        model.classifier = Network(self.architecture)
-        return model
+        model.fc = Network(self.architecture)
+        return model, model.fc.parameters()

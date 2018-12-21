@@ -1,5 +1,5 @@
 import torch
-
+import numpy as np
 
 class Trainer:
     """
@@ -35,10 +35,11 @@ class Trainer:
         self.testloader = testloader
         return self
 
-    def train(self, epochs, threshold=None):
+    def train(self, epochs, filename):
         steps = 0
         running_loss = 0
         self.epochs = epochs
+        accuracy_min = 0.9
         for epoch in range(epochs):
             if self.scheduler is not None:
                 self.scheduler.step()
@@ -55,11 +56,14 @@ class Trainer:
                 running_loss += loss.item()
             print("Epoch: {}/{}.. ".format(epoch + 1, epochs))
             accuracy = self.__validate_and_print(running_loss, epoch + 1)
+            if accuracy > accuracy_min:
+                print('Accuracy incremented ({:.6f} --> {:.6f}).  Saving model ...'.format(
+                    accuracy_min,
+                    accuracy))
+                self.save_checkpoint(filename)
+                accuracy_min = accuracy
             running_loss = 0
             steps = 0
-            if threshold is not None and accuracy >= threshold:
-                print("Stopping training due to reach threshold accuracy {:.3f}".format(accuracy))
-                break
 
     def save_checkpoint(self, filename):
         checkpoint = {
